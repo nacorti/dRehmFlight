@@ -31,9 +31,9 @@ Everyone that sends me pictures and videos of your flying creations! -Nick
 //========================================================================================================================//
 
 //Uncomment only one receiver type
-#define USE_PWM_RX
+//#define USE_PWM_RX
 //#define USE_PPM_RX
-//#define USE_SBUS_RX
+#define USE_SBUS_RX
 //#define USE_DSM_RX
 static const uint8_t num_DSM_channels = 6; //If using DSM RX, change this to match the number of transmitter channels you have
 
@@ -168,12 +168,12 @@ float MagScaleY = 1.0;
 float MagScaleZ = 1.0;
 
 //IMU calibration parameters - calibrate IMU using calculate_IMU_error() in the void setup() to get these values, then comment out calculate_IMU_error()
-float AccErrorX = 0.0;
-float AccErrorY = 0.0;
-float AccErrorZ = 0.0;
-float GyroErrorX = 0.0;
-float GyroErrorY= 0.0;
-float GyroErrorZ = 0.0;
+float AccErrorX = 0.04;
+float AccErrorY = -0.00;
+float AccErrorZ = 0.17;
+float GyroErrorX = -0.91;
+float GyroErrorY = -4.62;
+float GyroErrorZ = -0.69;
 
 //Controller parameters (take note of defaults before modifying!): 
 float i_limit = 25.0;     //Integrator saturation level, mostly for safety (default 25.0)
@@ -185,19 +185,19 @@ float Kp_roll_angle = 0.2;    //Roll P-gain - angle mode
 float Ki_roll_angle = 0.3;    //Roll I-gain - angle mode
 float Kd_roll_angle = 0.05;   //Roll D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_roll = 0.9;      //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
-float Kp_pitch_angle = 0.2;   //Pitch P-gain - angle mode
+float Kp_pitch_angle = 0.7;   //Pitch P-gain - angle mode
 float Ki_pitch_angle = 0.3;   //Pitch I-gain - angle mode
-float Kd_pitch_angle = 0.05;  //Pitch D-gain - angle mode (has no effect on controlANGLE2)
+float Kd_pitch_angle = 0.105;  //Pitch D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_pitch = 0.9;     //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
 
 float Kp_roll_rate = 0.15;    //Roll P-gain - rate mode
 float Ki_roll_rate = 0.2;     //Roll I-gain - rate mode
 float Kd_roll_rate = 0.0002;  //Roll D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!)
-float Kp_pitch_rate = 0.15;   //Pitch P-gain - rate mode
+float Kp_pitch_rate = 0.8;   //Pitch P-gain - rate mode
 float Ki_pitch_rate = 0.2;    //Pitch I-gain - rate mode
-float Kd_pitch_rate = 0.0002; //Pitch D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!)
+float Kd_pitch_rate = 0.0008; //Pitch D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!)
 
-float Kp_yaw = 0.3;           //Yaw P-gain
+float Kp_yaw = 0.2;           //Yaw P-gain
 float Ki_yaw = 0.05;          //Yaw I-gain
 float Kd_yaw = 0.00015;       //Yaw D-gain (be careful when increasing too high, motors will begin to overheat!)
 
@@ -286,6 +286,8 @@ float q3 = 0.0f;
 //Normalized desired state:
 float thro_des, roll_des, pitch_des, yaw_des;
 float roll_passthru, pitch_passthru, yaw_passthru;
+
+float tilt_passthru;
 
 //Controller:
 float error_roll, error_roll_prev, roll_des_prev, integral_roll, integral_roll_il, integral_roll_ol, integral_roll_prev, integral_roll_prev_il, integral_roll_prev_ol, derivative_roll, roll_PID = 0;
@@ -402,7 +404,7 @@ void loop() {
   //printRollPitchYaw();  //Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
   //printPIDoutput();     //Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1 to 1)
   //printMotorCommands(); //Prints the values being written to the motors (expected: 120 to 250)
-  //printServoCommands(); //Prints the values being written to the servos (expected: 0 to 180)
+  printServoCommands(); //Prints the values being written to the servos (expected: 0 to 180)
   //printLoopRate();      //Prints the time between loops in microseconds (expected: microseconds between loop iterations)
 
   //Get vehicle state
@@ -468,16 +470,25 @@ void controlMixer() {
    */
    
   //Quad mixing - EXAMPLE
-  m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
-  m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
-  m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
-  m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
+  // m1_command_scaled = thro_des - pitch_PID + roll_PID + yaw_PID; //Front Left
+  // m2_command_scaled = thro_des - pitch_PID - roll_PID - yaw_PID; //Front Right
+  // m3_command_scaled = thro_des + pitch_PID - roll_PID + yaw_PID; //Back Right
+  // m4_command_scaled = thro_des + pitch_PID + roll_PID - yaw_PID; //Back Left
+  // m5_command_scaled = 0;
+  // m6_command_scaled = 0;
+
+  // m1_command_scaled = thro_des + tilt_passthru*roll_PID - (1-tilt_passthru*yaw_PID);
+  // m2_command_scaled = thro_des + tilt_passthru*roll_PID + (1-tilt_passthru*yaw_PID);
+  //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
+  m1_command_scaled = thro_des + roll_PID;
+  m2_command_scaled = thro_des - roll_PID;
+  m3_command_scaled = 0;
+  m4_command_scaled = 0;
   m5_command_scaled = 0;
   m6_command_scaled = 0;
 
-  //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
-  s1_command_scaled = 0;
-  s2_command_scaled = 0;
+  s1_command_scaled = 0.5 - 0.5*yaw_PID + pitch_PID;
+  s2_command_scaled = 0.5 - 0.5*yaw_PID - pitch_PID;
   s3_command_scaled = 0;
   s4_command_scaled = 0;
   s5_command_scaled = 0;
@@ -1604,8 +1615,10 @@ void printAccelData() {
     print_counter = micros();
     Serial.print(F("AccX: "));
     Serial.print(AccX);
+    Serial.print(" ");
     Serial.print(F(" AccY: "));
     Serial.print(AccY);
+    Serial.print(" ");
     Serial.print(F(" AccZ: "));
     Serial.println(AccZ);
   }
