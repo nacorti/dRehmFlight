@@ -168,12 +168,12 @@ float MagScaleY = 1.0;
 float MagScaleZ = 1.0;
 
 //IMU calibration parameters - calibrate IMU using calculate_IMU_error() in the void setup() to get these values, then comment out calculate_IMU_error()
-float AccErrorX = 0.04;
-float AccErrorY = -0.00;
+float AccErrorX = 0.05;
+float AccErrorY = -0.06;
 float AccErrorZ = 0.17;
-float GyroErrorX = -0.91;
-float GyroErrorY = -4.62;
-float GyroErrorZ = -0.69;
+float GyroErrorX = -0.79;
+float GyroErrorY = -3.88;
+float GyroErrorZ = -0.64;
 
 //Controller parameters (take note of defaults before modifying!): 
 float i_limit = 25.0;     //Integrator saturation level, mostly for safety (default 25.0)
@@ -285,7 +285,7 @@ float q3 = 0.0f;
 
 //Normalized desired state:
 float thro_des, roll_des, pitch_des, yaw_des;
-float roll_passthru, pitch_passthru, yaw_passthru;
+float roll_passthru, pitch_passthru, yaw_passthru, tilt_passthru;
 
 //Controller:
 float error_roll, error_roll_prev, roll_des_prev, integral_roll, integral_roll_il, integral_roll_ol, integral_roll_prev, integral_roll_prev_il, integral_roll_prev_ol, derivative_roll, roll_PID = 0;
@@ -350,9 +350,9 @@ void setup() {
   //calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
 
   //Arm servo channels
-  servo1.write(0); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
-  servo2.write(0); //Set these to 90 for servos if you do not want them to briefly max out on startup
-  servo3.write(0); //Keep these at 0 if you are using servo outputs for motors
+  servo1.write(70); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
+  servo2.write(70); //Set these to 90 for servos if you do not want them to briefly max out on startup
+  servo3.write(150); //Keep these at 0 if you are using servo outputs for motors
   servo4.write(0);
   servo5.write(0);
   servo6.write(0);
@@ -395,7 +395,7 @@ void loop() {
   loopBlink(); //Indicate we are in main loop with short blink every 1.5 seconds
 
   //Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:
-  printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)
+  //printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)
   //printDesiredState();  //Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0 to 1 for throttle)
   //printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)
@@ -470,6 +470,8 @@ void controlMixer() {
    *roll_passthru, pitch_passthru, yaw_passthru - direct unstabilized command passthrough
    *channel_6_pwm - free auxillary channel, can be used to toggle things with an 'if' statement
    */
+
+  tilt_passthru = (channel_6_pwm - 1000.0)/1000.0;
    
   //Quad mixing - EXAMPLE
   m1_command_scaled = thro_des - pitch_PID + roll_PID; //Front Left
@@ -482,7 +484,7 @@ void controlMixer() {
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
   s1_command_scaled = 0.5 - 0.5*yaw_PID;
   s2_command_scaled = 0.5 - 0.5*yaw_PID;
-  s3_command_scaled = 0.1;
+  s3_command_scaled = 0.95 - tilt_passthru;
   s4_command_scaled = 0;
   s5_command_scaled = 0;
   s6_command_scaled = 0;
