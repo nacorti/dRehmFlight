@@ -341,6 +341,8 @@ void setup() {
   channel_5_pwm = channel_5_fs;
   channel_6_pwm = channel_6_fs;
 
+  delay(5);
+
   //Initialize IMU communication
   IMUinit();
 
@@ -350,8 +352,8 @@ void setup() {
   //calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
 
   //Arm servo channels
-  servo1.write(0); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
-  servo2.write(0); //Set these to 90 for servos if you do not want them to briefly max out on startup
+  servo1.write(90); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
+  servo2.write(90); //Set these to 90 for servos if you do not want them to briefly max out on startup
   servo3.write(0); //Keep these at 0 if you are using servo outputs for motors
   servo4.write(0);
   servo5.write(0);
@@ -397,7 +399,7 @@ void loop() {
   //Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:
   printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)
   //printDesiredState();  //Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0 to 1 for throttle)
-  //printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
+  printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)
   //printMagData();       //Prints filtered magnetometer data direct from IMU (expected: ~ -300 to 300)
   //printRollPitchYaw();  //Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
@@ -507,12 +509,13 @@ void IMUinit() {
     Wire.setClock(1000000); //Note this is 2.5 times the spec sheet 400 kHz max...
     
     mpu6050.initialize();
+    Serial.println("MPU6050 Device ID: " + mpu6050.getDeviceID());
     
-    if (mpu6050.testConnection() == false) {
-      Serial.println("MPU6050 initialization unsuccessful");
-      Serial.println("Check MPU6050 wiring or try cycling power");
-      while(1) {}
-    }
+    // if (mpu6050.testConnection() == false) {
+    //   Serial.println("MPU6050 initialization unsuccessful");
+    //   Serial.println("Check MPU6050 wiring or try cycling power");
+    //   while(1) {}
+    // }
 
     //From the reset state all registers should be 0x00, so we should be at
     //max sample rate with digital low pass filter(s) off.  All we need to
