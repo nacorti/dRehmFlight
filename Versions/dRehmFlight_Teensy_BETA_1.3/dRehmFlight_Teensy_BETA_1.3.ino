@@ -473,8 +473,9 @@ void controlMixer() {
    *channel_6_pwm - free auxillary channel, can be used to toggle things with an 'if' statement
    */
    
-  //helo mixing - EXAMPLE
-  m1_command_scaled = thro_des; // - pitch_PID + roll_PID + yaw_PID; //Front Left
+  //helo mixing
+  //transmitter throttle should correspond to collective pitch not motor RPM - map to separate twisty switch
+  m1_command_scaled = channel_6_pwm; // - pitch_PID + roll_PID + yaw_PID; //Front Left
   m2_command_scaled = 0;
   m3_command_scaled = 0;
   m4_command_scaled = 0;
@@ -482,8 +483,10 @@ void controlMixer() {
   m6_command_scaled = 0;
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
-  s1_command_scaled = 0.5 - pitch_PID + roll_PID;
-  s2_command_scaled = 0.5 - pitch_PID - roll_PID;
+  // for reference: s1 is front left, s2 is front right, s3 is rear
+  s1_command_scaled = 1 - thro_des - roll_PID - pitch_PID;
+  s1_command_scaled = 1 - thro_des + roll_PID - pitch_PID; // I'll probably need to invert this due to servo geometry
+  s2_command_scaled = 0 + thro_des + pitch_PID;
   s3_command_scaled = 0;
   s4_command_scaled = 0;
   s5_command_scaled = 0;
