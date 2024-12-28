@@ -351,12 +351,12 @@ void setup() {
   delay(5);
 
   //Get IMU error to zero accelerometer and gyro readings, assuming vehicle is level when powered up
-  //calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
+  calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
 
   //Arm servo channels
-  servo1.write(90); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
-  servo2.write(90); //Set these to 90 for servos if you do not want them to briefly max out on startup
-  servo3.write(75); //Keep these at 0 if you are using servo outputs for motors
+  servo1.write(60); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
+  servo2.write(60); //Set these to 90 for servos if you do not want them to briefly max out on startup
+  servo3.write(60); //Keep these at 0 if you are using servo outputs for motors
   servo4.write(0);
   servo5.write(0);
   servo6.write(0);
@@ -478,7 +478,7 @@ void controlMixer() {
   //helo mixing
   //transmitter throttle should correspond to collective pitch not motor RPM - map to separate twisty switch
   ch6_pwm_normalized = (channel_6_pwm - 1000.0)/1000.0;
-  collective_input = -.8*(thro_des - .5);
+  collective_input = -.8*(thro_des - .5); // .8 scale factor avoids saturating servos
   m1_command_scaled = ch6_pwm_normalized; // - pitch_PID + roll_PID + yaw_PID; //Front Left
   m2_command_scaled = 0;
   m3_command_scaled = 0;
@@ -629,12 +629,12 @@ void calculate_IMU_error() {
    * measurement. 
    */
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
-  AccErrorX = 0.0;
-  AccErrorY = 0.0;
-  AccErrorZ = 0.0;
-  GyroErrorX = 0.0;
-  GyroErrorY= 0.0;
-  GyroErrorZ = 0.0;
+  AccErrorX = 0.05;
+  AccErrorY = -0.00;
+  AccErrorZ = 0.01;
+  GyroErrorX = -4.23;
+  GyroErrorY= 4.25;
+  GyroErrorZ = -0.35;
   
   //Read IMU values 12000 times
   int c = 0;
