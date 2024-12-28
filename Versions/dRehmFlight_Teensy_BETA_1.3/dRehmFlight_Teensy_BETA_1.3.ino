@@ -181,11 +181,11 @@ float maxRoll = 30.0;     //Max roll angle in degrees for angle mode (maximum ~7
 float maxPitch = 30.0;    //Max pitch angle in degrees for angle mode (maximum ~70 degrees), deg/sec for rate mode
 float maxYaw = 160.0;     //Max yaw rate in deg/sec
 
-float Kp_roll_angle = 0.2;    //Roll P-gain - angle mode 
+float Kp_roll_angle = 1.2;    //Roll P-gain - angle mode 
 float Ki_roll_angle = 0.3;    //Roll I-gain - angle mode
 float Kd_roll_angle = 0.05;   //Roll D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_roll = 0.9;      //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
-float Kp_pitch_angle = 0.2;   //Pitch P-gain - angle mode
+float Kp_pitch_angle = 1.2;   //Pitch P-gain - angle mode
 float Ki_pitch_angle = 0.3;   //Pitch I-gain - angle mode
 float Kd_pitch_angle = 0.05;  //Pitch D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_pitch = 0.9;     //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -286,6 +286,8 @@ float q3 = 0.0f;
 //Normalized desired state:
 float thro_des, roll_des, pitch_des, yaw_des;
 float roll_passthru, pitch_passthru, yaw_passthru;
+float ch6_pwm_normalized = 0.0;
+float collective_input = 0.0; //expected: [-0.5,0.5]
 
 //Controller:
 float error_roll, error_roll_prev, roll_des_prev, integral_roll, integral_roll_il, integral_roll_ol, integral_roll_prev, integral_roll_prev_il, integral_roll_prev_ol, derivative_roll, roll_PID = 0;
@@ -354,7 +356,7 @@ void setup() {
   //Arm servo channels
   servo1.write(90); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
   servo2.write(90); //Set these to 90 for servos if you do not want them to briefly max out on startup
-  servo3.write(0); //Keep these at 0 if you are using servo outputs for motors
+  servo3.write(75); //Keep these at 0 if you are using servo outputs for motors
   servo4.write(0);
   servo5.write(0);
   servo6.write(0);
@@ -397,9 +399,9 @@ void loop() {
   loopBlink(); //Indicate we are in main loop with short blink every 1.5 seconds
 
   //Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:
-  printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)
+  //printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)
   //printDesiredState();  //Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0 to 1 for throttle)
-  printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
+  //printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)
   //printMagData();       //Prints filtered magnetometer data direct from IMU (expected: ~ -300 to 300)
   //printRollPitchYaw();  //Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
@@ -475,7 +477,9 @@ void controlMixer() {
    
   //helo mixing
   //transmitter throttle should correspond to collective pitch not motor RPM - map to separate twisty switch
-  m1_command_scaled = channel_6_pwm; // - pitch_PID + roll_PID + yaw_PID; //Front Left
+  ch6_pwm_normalized = (channel_6_pwm - 1000.0)/1000.0;
+  collective_input = -.8*(thro_des - .5);
+  m1_command_scaled = ch6_pwm_normalized; // - pitch_PID + roll_PID + yaw_PID; //Front Left
   m2_command_scaled = 0;
   m3_command_scaled = 0;
   m4_command_scaled = 0;
@@ -484,10 +488,11 @@ void controlMixer() {
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
   // for reference: s1 is front left, s2 is front right, s3 is rear
-  s1_command_scaled = 1 - thro_des - roll_PID - pitch_PID;
-  s1_command_scaled = 1 - thro_des + roll_PID - pitch_PID; // I'll probably need to invert this due to servo geometry
-  s2_command_scaled = 0 + thro_des + pitch_PID;
-  s3_command_scaled = 0;
+  s1_command_scaled = .5 - pitch_PID + roll_PID - collective_input; //- channel_6_pwm; //1 - thro_des - roll_PID - pitch_PID;
+  //s2_command_scaled = 1 - thro_des + roll_PID - pitch_PID; // I'll probably need to invert this due to servo geometry
+  //s3_command_scaled = 0 + thro_des + pitch_PID;
+  s2_command_scaled = .5 + pitch_PID + roll_PID + collective_input;
+  s3_command_scaled = .5 - pitch_PID + collective_input;
   s4_command_scaled = 0;
   s5_command_scaled = 0;
   s6_command_scaled = 0;
@@ -1359,13 +1364,13 @@ void calibrateESCs() {
       m4_command_scaled = thro_des;
       m5_command_scaled = thro_des;
       m6_command_scaled = thro_des;
-      s1_command_scaled = thro_des;
-      s2_command_scaled = thro_des;
-      s3_command_scaled = thro_des;
-      s4_command_scaled = thro_des;
-      s5_command_scaled = thro_des;
-      s6_command_scaled = thro_des;
-      s7_command_scaled = thro_des;
+      // s1_command_scaled = thro_des;
+      // s2_command_scaled = thro_des;
+      // s3_command_scaled = thro_des;
+      // s4_command_scaled = thro_des;
+      // s5_command_scaled = thro_des;
+      // s6_command_scaled = thro_des;
+      // s7_command_scaled = thro_des;
       scaleCommands(); //Scales motor commands to 125 to 250 range (oneshot125 protocol) and servo PWM commands to 0 to 180 (for servo library)
     
       //throttleCut(); //Directly sets motor commands to low based on state of ch5
