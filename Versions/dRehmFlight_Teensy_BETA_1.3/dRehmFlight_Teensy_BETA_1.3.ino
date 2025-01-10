@@ -343,15 +343,13 @@ void setup() {
   channel_5_pwm = channel_5_fs;
   channel_6_pwm = channel_6_fs;
 
-  delay(5);
-
   //Initialize IMU communication
   IMUinit();
 
   delay(5);
 
   //Get IMU error to zero accelerometer and gyro readings, assuming vehicle is level when powered up
-  calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
+  //calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
 
   //Arm servo channels
   servo1.write(60); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
@@ -404,7 +402,7 @@ void loop() {
   //printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)
   //printMagData();       //Prints filtered magnetometer data direct from IMU (expected: ~ -300 to 300)
-  //printRollPitchYaw();  //Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
+  printRollPitchYaw();  //Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
   //printPIDoutput();     //Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1 to 1)
   //printMotorCommands(); //Prints the values being written to the motors (expected: 120 to 250)
   //printServoCommands(); //Prints the values being written to the servos (expected: 0 to 180)
@@ -488,11 +486,11 @@ void controlMixer() {
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
   // for reference: s1 is front left, s2 is front right, s3 is rear
-  s1_command_scaled = .5 - pitch_PID + roll_PID - collective_input; //- channel_6_pwm; //1 - thro_des - roll_PID - pitch_PID;
+  s1_command_scaled = .5; //- pitch_PID + roll_PID - collective_input; //- channel_6_pwm; //1 - thro_des - roll_PID - pitch_PID;
   //s2_command_scaled = 1 - thro_des + roll_PID - pitch_PID; // I'll probably need to invert this due to servo geometry
   //s3_command_scaled = 0 + thro_des + pitch_PID;
-  s2_command_scaled = .5 + pitch_PID + roll_PID + collective_input;
-  s3_command_scaled = .5 - pitch_PID + collective_input;
+  s2_command_scaled = .5; // + pitch_PID + roll_PID + collective_input;
+  s3_command_scaled = .5; // - pitch_PID + collective_input;
   s4_command_scaled = 0;
   s5_command_scaled = 0;
   s6_command_scaled = 0;
