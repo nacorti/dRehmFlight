@@ -487,9 +487,12 @@ void controlMixer() {
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
   // for reference: s1 is front left, s2 is front right, s3 is rear
-  s1_command_scaled = 0.5 + (-pitch_PID -roll_PID +collective_input);
-  s2_command_scaled = 0.5 + (-pitch_PID +roll_PID -collective_input);
-  s3_command_scaled = 0.5 + (+roll_PID +collective_input);
+  // s1_command_scaled = 0.5 + (-pitch_PID -roll_PID +collective_input);
+  // s2_command_scaled = 0.5 + (-pitch_PID +roll_PID -collective_input);
+  // s3_command_scaled = 0.5 + (+roll_PID +collective_input);
+  s1_command_scaled = 0.5 + ( -roll_PID +pitch_PID +collective_input);
+  s2_command_scaled = 0.5 + ( -roll_PID -pitch_PID -collective_input);
+  s3_command_scaled = 0.5 + ( -pitch_PID +collective_input);
   s1_command_scaled = constrain(s1_command_scaled, 0.0, 0.71);
   s2_command_scaled = constrain(s2_command_scaled, 0.2, 1.0);
   s3_command_scaled = constrain(s3_command_scaled, 0.0, 0.66);
