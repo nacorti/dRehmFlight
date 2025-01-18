@@ -169,11 +169,11 @@ float MagScaleZ = 1.0;
 
 //IMU calibration parameters - calibrate IMU using calculate_IMU_error() in the void setup() to get these values, then comment out calculate_IMU_error()
 float AccErrorX = 0.05;
-float AccErrorY = -0.06;
-float AccErrorZ = 0.17;
-float GyroErrorX = -0.79;
-float GyroErrorY = -3.88;
-float GyroErrorZ = -0.64;
+float AccErrorY = 0.03;
+float AccErrorZ = 0.01;
+float GyroErrorX = -4.15;
+float GyroErrorY = 4.31;
+float GyroErrorZ = -0.35;
 
 //Controller parameters (take note of defaults before modifying!): 
 float i_limit = 25.0;     //Integrator saturation level, mostly for safety (default 25.0)
@@ -185,7 +185,7 @@ float Kp_roll_angle = 0.2;    //Roll P-gain - angle mode
 float Ki_roll_angle = 0.3;    //Roll I-gain - angle mode
 float Kd_roll_angle = 0.05;   //Roll D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_roll = 0.9;      //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
-float Kp_pitch_angle = 0.2;   //Pitch P-gain - angle mode
+float Kp_pitch_angle = 1.2;   //Pitch P-gain - angle mode
 float Ki_pitch_angle = 0.3;   //Pitch I-gain - angle mode
 float Kd_pitch_angle = 0.05;  //Pitch D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_pitch = 0.9;     //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -347,7 +347,7 @@ void setup() {
   delay(5);
 
   //Get IMU error to zero accelerometer and gyro readings, assuming vehicle is level when powered up
-  //calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
+  // calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
 
   //Arm servo channels
   servo1.write(70); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
@@ -474,16 +474,16 @@ void controlMixer() {
   tilt_passthru = (channel_6_pwm - 1000.0)/1000.0;
    
   //Quad mixing - EXAMPLE
-  m1_command_scaled = thro_des - pitch_PID + roll_PID; //Front Left
-  m2_command_scaled = thro_des - pitch_PID - roll_PID; //Front Right
-  m3_command_scaled = thro_des + pitch_PID; //Back
+  m1_command_scaled = thro_des + roll_PID; //Front Left
+  m2_command_scaled = thro_des - roll_PID; //Front Right
+  m3_command_scaled = 0; //Back
   m4_command_scaled = 0; //Back Left
   m5_command_scaled = 0;
   m6_command_scaled = 0;
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
-  s1_command_scaled = 0.5 - 0.5*yaw_PID;
-  s2_command_scaled = 0.5 - 0.5*yaw_PID;
+  s1_command_scaled = 0.5 + yaw_PID + pitch_PID;
+  s2_command_scaled = 0.5 + yaw_PID - pitch_PID;
   s3_command_scaled = 0.95 - tilt_passthru;
   s4_command_scaled = 0;
   s5_command_scaled = 0;
@@ -510,11 +510,11 @@ void IMUinit() {
     
     mpu6050.initialize();
     
-    if (mpu6050.testConnection() == false) {
-      Serial.println("MPU6050 initialization unsuccessful");
-      Serial.println("Check MPU6050 wiring or try cycling power");
-      while(1) {}
-    }
+    // if (mpu6050.testConnection() == false) {
+    //   Serial.println("MPU6050 initialization unsuccessful");
+    //   Serial.println("Check MPU6050 wiring or try cycling power");
+    //   while(1) {}
+    // }
 
     //From the reset state all registers should be 0x00, so we should be at
     //max sample rate with digital low pass filter(s) off.  All we need to
