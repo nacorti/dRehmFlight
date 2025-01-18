@@ -197,7 +197,7 @@ float Kp_pitch_rate = 0.15;   //Pitch P-gain - rate mode
 float Ki_pitch_rate = 0.2;    //Pitch I-gain - rate mode
 float Kd_pitch_rate = 0.0002; //Pitch D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!)
 
-float Kp_yaw = 0.3;           //Yaw P-gain
+float Kp_yaw = 0.4;           //Yaw P-gain
 float Ki_yaw = 0.05;          //Yaw I-gain
 float Kd_yaw = 0.00015;       //Yaw D-gain (be careful when increasing too high, motors will begin to overheat!)
 
@@ -352,9 +352,9 @@ void setup() {
   //calculate_IMU_error(); //Calibration parameters printed to serial monitor. Paste these in the user specified variables section, then comment this out forever.
 
   //Arm servo channels
-  servo1.write(60); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
-  servo2.write(60); //Set these to 90 for servos if you do not want them to briefly max out on startup
-  servo3.write(60); //Keep these at 0 if you are using servo outputs for motors
+  servo1.write(90); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
+  servo2.write(90); //Set these to 90 for servos if you do not want them to briefly max out on startup
+  servo3.write(90); //Keep these at 0 if you are using servo outputs for motors
   servo4.write(0);
   servo5.write(0);
   servo6.write(0);
@@ -402,7 +402,7 @@ void loop() {
   //printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
   //printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)
   //printMagData();       //Prints filtered magnetometer data direct from IMU (expected: ~ -300 to 300)
-  printRollPitchYaw();  //Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
+  //printRollPitchYaw();  //Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
   //printPIDoutput();     //Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1 to 1)
   //printMotorCommands(); //Prints the values being written to the motors (expected: 120 to 250)
   //printServoCommands(); //Prints the values being written to the servos (expected: 0 to 180)
@@ -476,9 +476,10 @@ void controlMixer() {
   //helo mixing
   //transmitter throttle should correspond to collective pitch not motor RPM - map to separate twisty switch
   ch6_pwm_normalized = (channel_6_pwm - 1000.0)/1000.0;
-  collective_input = -.8*(thro_des - .5); // .8 scale factor avoids saturating servos
+  collective_input = -1*(thro_des - .5); // .8 scale factor avoids saturating servos
   m1_command_scaled = ch6_pwm_normalized; // - pitch_PID + roll_PID + yaw_PID; //Front Left
-  m2_command_scaled = 0;
+  m2_command_scaled = 0.5 + yaw_PID;
+  m2_command_scaled = constrain(m2_command_scaled, 0.0, 1.0);
   m3_command_scaled = 0;
   m4_command_scaled = 0;
   m5_command_scaled = 0;
@@ -486,12 +487,13 @@ void controlMixer() {
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
   // for reference: s1 is front left, s2 is front right, s3 is rear
-  s1_command_scaled = .5; //- pitch_PID + roll_PID - collective_input; //- channel_6_pwm; //1 - thro_des - roll_PID - pitch_PID;
-  //s2_command_scaled = 1 - thro_des + roll_PID - pitch_PID; // I'll probably need to invert this due to servo geometry
-  //s3_command_scaled = 0 + thro_des + pitch_PID;
-  s2_command_scaled = .5; // + pitch_PID + roll_PID + collective_input;
-  s3_command_scaled = .5; // - pitch_PID + collective_input;
-  s4_command_scaled = 0;
+  s1_command_scaled = 0.5 + (-pitch_PID -roll_PID +collective_input);
+  s2_command_scaled = 0.5 + (-pitch_PID +roll_PID -collective_input);
+  s3_command_scaled = 0.5 + (+roll_PID +collective_input);
+  s1_command_scaled = constrain(s1_command_scaled, 0.0, 0.71);
+  s2_command_scaled = constrain(s2_command_scaled, 0.2, 1.0);
+  s3_command_scaled = constrain(s3_command_scaled, 0.0, 0.66);
+  s4_command_scaled = 0.5;
   s5_command_scaled = 0;
   s6_command_scaled = 0;
   s7_command_scaled = 0;
@@ -627,12 +629,12 @@ void calculate_IMU_error() {
    * measurement. 
    */
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
-  AccErrorX = 0.05;
-  AccErrorY = -0.00;
+  AccErrorX = 0.02;
+  AccErrorY = 0.02;
   AccErrorZ = 0.01;
-  GyroErrorX = -4.23;
-  GyroErrorY= 4.25;
-  GyroErrorZ = -0.35;
+  GyroErrorX = -1.74;
+  GyroErrorY= 0.81;
+  GyroErrorZ = -0.21;
   
   //Read IMU values 12000 times
   int c = 0;
@@ -1467,7 +1469,7 @@ void throttleCut() {
   if ((channel_5_pwm > 1500) || (armedFly == false)) {
     armedFly = false;
     m1_command_PWM = 120;
-    m2_command_PWM = 120;
+    m2_command_PWM = 500; // Bidirection motor, throttle cut to middle
     m3_command_PWM = 120;
     m4_command_PWM = 120;
     m5_command_PWM = 120;
