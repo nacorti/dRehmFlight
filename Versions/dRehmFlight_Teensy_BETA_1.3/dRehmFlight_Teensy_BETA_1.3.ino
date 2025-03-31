@@ -197,7 +197,7 @@ float Kp_pitch_rate = 0.15;   //Pitch P-gain - rate mode
 float Ki_pitch_rate = 0.2;    //Pitch I-gain - rate mode
 float Kd_pitch_rate = 0.0002; //Pitch D-gain - rate mode (be careful when increasing too high, motors will begin to overheat!)
 
-float Kp_yaw = 0.4;           //Yaw P-gain
+float Kp_yaw = 0.2;           //Yaw P-gain
 float Ki_yaw = 0.05;          //Yaw I-gain
 float Kd_yaw = 0.00015;       //Yaw D-gain (be careful when increasing too high, motors will begin to overheat!)
 
@@ -473,16 +473,15 @@ void controlMixer() {
    *channel_6_pwm - free auxillary channel, can be used to toggle things with an 'if' statement
    */
    
-  //helo mixing
+  //compound_tricopter mixing
   //transmitter throttle should correspond to collective pitch not motor RPM - map to separate twisty switch
   ch6_pwm_normalized = (channel_6_pwm - 1000.0)/1000.0;
-  collective_input = -1*(thro_des - .5); // .8 scale factor avoids saturating servos
-  m1_command_scaled = ch6_pwm_normalized; // - pitch_PID + roll_PID + yaw_PID; //Front Left
-  m2_command_scaled = 0.5 + yaw_PID;
-  m2_command_scaled = constrain(m2_command_scaled, 0.0, 1.0);
-  m3_command_scaled = 0;
+  // collective_input = -1*(thro_des - .5); // .8 scale factor avoids saturating servos
+  m1_command_scaled = thro_des; // - pitch_PID + roll_PID + yaw_PID; //Front Left
+  m2_command_scaled = thro_des - pitch_PID + roll_PID;
+  m3_command_scaled = thro_des - pitch_PID - roll_PID;
   m4_command_scaled = 0;
-  m5_command_scaled = 0;
+  m5_command_scaled = thro_des;
   m6_command_scaled = 0;
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
@@ -490,13 +489,12 @@ void controlMixer() {
   // s1_command_scaled = 0.5 + (-pitch_PID -roll_PID +collective_input);
   // s2_command_scaled = 0.5 + (-pitch_PID +roll_PID -collective_input);
   // s3_command_scaled = 0.5 + (+roll_PID +collective_input);
-  s1_command_scaled = 0.5 + ( -roll_PID +pitch_PID +collective_input);
-  s2_command_scaled = 0.5 + ( -roll_PID -pitch_PID -collective_input);
-  s3_command_scaled = 0.5 + ( -pitch_PID +collective_input);
-  s1_command_scaled = constrain(s1_command_scaled, 0.0, 0.71);
-  s2_command_scaled = constrain(s2_command_scaled, 0.2, 1.0);
-  s3_command_scaled = constrain(s3_command_scaled, 0.0, 0.66);
-  s4_command_scaled = 0.5;
+  s1_command_scaled = 0.15 - yaw_PID;
+  s2_command_scaled = 0.85 - yaw_PID;
+  s1_command_scaled = constrain(s1_command_scaled, 0.0, 0.5);
+  s2_command_scaled = constrain(s2_command_scaled, 0.5, 1.0);
+  s3_command_scaled = thro_des;
+  s4_command_scaled = 0;
   s5_command_scaled = 0;
   s6_command_scaled = 0;
   s7_command_scaled = 0;
