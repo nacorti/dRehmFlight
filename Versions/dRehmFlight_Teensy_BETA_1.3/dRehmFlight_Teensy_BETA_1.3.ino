@@ -181,11 +181,11 @@ float maxRoll = 30.0;     //Max roll angle in degrees for angle mode (maximum ~7
 float maxPitch = 30.0;    //Max pitch angle in degrees for angle mode (maximum ~70 degrees), deg/sec for rate mode
 float maxYaw = 160.0;     //Max yaw rate in deg/sec
 
-float Kp_roll_angle = 1.2;    //Roll P-gain - angle mode 
+float Kp_roll_angle = 0.2;    //Roll P-gain - angle mode 
 float Ki_roll_angle = 0.3;    //Roll I-gain - angle mode
 float Kd_roll_angle = 0.05;   //Roll D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_roll = 0.9;      //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
-float Kp_pitch_angle = 1.2;   //Pitch P-gain - angle mode
+float Kp_pitch_angle = 0.2;   //Pitch P-gain - angle mode
 float Ki_pitch_angle = 0.3;   //Pitch I-gain - angle mode
 float Kd_pitch_angle = 0.05;  //Pitch D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_pitch = 0.9;     //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -354,7 +354,7 @@ void setup() {
   //Arm servo channels
   servo1.write(90); //Command servo angle from 0-180 degrees (1000 to 2000 PWM)
   servo2.write(90); //Set these to 90 for servos if you do not want them to briefly max out on startup
-  servo3.write(90); //Keep these at 0 if you are using servo outputs for motors
+  servo3.write(0); //Keep these at 0 if you are using servo outputs for motors
   servo4.write(0);
   servo5.write(0);
   servo6.write(0);
@@ -362,7 +362,7 @@ void setup() {
   
   delay(5);
 
-  //calibrateESCs(); //PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick to max, powering on, and lowering throttle to zero after the beeps
+  // calibrateESCs(); //PROPS OFF. Uncomment this to calibrate your ESCs by setting throttle stick to max, powering on, and lowering throttle to zero after the beeps
   //Code will not proceed past here if this function is uncommented!
 
   //Arm OneShot125 motors
@@ -1470,7 +1470,7 @@ void throttleCut() {
   if ((channel_5_pwm > 1500) || (armedFly == false)) {
     armedFly = false;
     m1_command_PWM = 120;
-    m2_command_PWM = 500; // Bidirection motor, throttle cut to middle
+    m2_command_PWM = 120; // Bidirection motor, throttle cut to middle
     m3_command_PWM = 120;
     m4_command_PWM = 120;
     m5_command_PWM = 120;
