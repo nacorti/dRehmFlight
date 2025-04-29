@@ -168,12 +168,12 @@ float MagScaleY = 1.0;
 float MagScaleZ = 1.0;
 
 //IMU calibration parameters - calibrate IMU using calculate_IMU_error() in the void setup() to get these values, then comment out calculate_IMU_error()
-float AccErrorX = 0.0;
-float AccErrorY = 0.0;
-float AccErrorZ = 0.0;
-float GyroErrorX = 0.0;
-float GyroErrorY= 0.0;
-float GyroErrorZ = 0.0;
+float AccErrorX = 0.17;
+float AccErrorY = 0.07;
+float AccErrorZ = 0.02;
+float GyroErrorX = 0.15;
+float GyroErrorY= 1.88;
+float GyroErrorZ = -0.35;
 
 //Controller parameters (take note of defaults before modifying!): 
 float i_limit = 25.0;     //Integrator saturation level, mostly for safety (default 25.0)
@@ -181,11 +181,11 @@ float maxRoll = 30.0;     //Max roll angle in degrees for angle mode (maximum ~7
 float maxPitch = 30.0;    //Max pitch angle in degrees for angle mode (maximum ~70 degrees), deg/sec for rate mode
 float maxYaw = 160.0;     //Max yaw rate in deg/sec
 
-float Kp_roll_angle = 0.2;    //Roll P-gain - angle mode 
+float Kp_roll_angle = 1.2;    //Roll P-gain - angle mode 
 float Ki_roll_angle = 0.3;    //Roll I-gain - angle mode
 float Kd_roll_angle = 0.05;   //Roll D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_roll = 0.9;      //Roll damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
-float Kp_pitch_angle = 0.2;   //Pitch P-gain - angle mode
+float Kp_pitch_angle = 1.2;   //Pitch P-gain - angle mode
 float Ki_pitch_angle = 0.3;   //Pitch I-gain - angle mode
 float Kd_pitch_angle = 0.05;  //Pitch D-gain - angle mode (has no effect on controlANGLE2)
 float B_loop_pitch = 0.9;     //Pitch damping term for controlANGLE2(), lower is more damping (must be between 0 to 1)
@@ -287,6 +287,11 @@ float q3 = 0.0f;
 float thro_des, roll_des, pitch_des, yaw_des;
 float roll_passthru, pitch_passthru, yaw_passthru;
 float ch6_pwm_normalized = 0.0;
+float aux_thro_des = 0.0;
+float right_side_magnitude = 0.0;
+float left_side_magnitude = 0.0;
+float right_side_angle = 0.0;
+float left_side_angle = 0.0;
 float collective_input = 0.0; //expected: [-0.5,0.5]
 
 //Controller:
@@ -399,8 +404,8 @@ void loop() {
   //Print data at 100hz (uncomment one at a time for troubleshooting) - SELECT ONE:
   //printRadioData();     //Prints radio pwm values (expected: 1000 to 2000)
   //printDesiredState();  //Prints desired vehicle state commanded in either degrees or deg/sec (expected: +/- maxAXIS for roll, pitch, yaw; 0 to 1 for throttle)
-  //printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
-  //printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)
+  // printGyroData();      //Prints filtered gyro data direct from IMU (expected: ~ -250 to 250, 0 at rest)
+  // printAccelData();     //Prints filtered accelerometer data direct from IMU (expected: ~ -2 to 2; x,y 0 when level, z 1 when level)
   //printMagData();       //Prints filtered magnetometer data direct from IMU (expected: ~ -300 to 300)
   //printRollPitchYaw();  //Prints roll, pitch, and yaw angles in degrees from Madgwick filter (expected: degrees, 0 when level)
   //printPIDoutput();     //Prints computed stabilized PID variables from controller and desired setpoint (expected: ~ -1 to 1)
@@ -473,15 +478,41 @@ void controlMixer() {
    *channel_6_pwm - free auxillary channel, can be used to toggle things with an 'if' statement
    */
    
+  // Serial.print("RPW:");
+  // Serial.print(roll_PID);
+  // Serial.print("|");
+  // Serial.print(pitch_PID);
+  // Serial.print("|");
+  // Serial.println(yaw_PID);
   //compound_tricopter mixing
   //transmitter throttle should correspond to collective pitch not motor RPM - map to separate twisty switch
   ch6_pwm_normalized = (channel_6_pwm - 1000.0)/1000.0;
+
+  aux_thro_des = 0.4 * thro_des;
+
+  // left_side_magnitude =  aux_thro_des + pitch_PID + roll_PID + abs(yaw_PID);
+  // right_side_magnitude = aux_thro_des + pitch_PID - roll_PID + abs(yaw_PID);
+
+  // left_side_angle = atan2(yaw_PID, (pitch_PID + roll_PID))/5.0;
+  // right_side_angle = atan2(yaw_PID, (pitch_PID - roll_PID))/5.0;
+
+  // Serial.print("Left Magnitude: ");
+  // Serial.print(left_side_magnitude);
+  // Serial.print("| Right Magnitude: ");
+  // Serial.println(right_side_magnitude);
+
+  // Serial.print("Left Side Angle: ");
+  // Serial.print(left_side_angle);
+  // Serial.print("| Right Side Angle");
+  // Serial.println(right_side_angle);
+
+  
   // collective_input = -1*(thro_des - .5); // .8 scale factor avoids saturating servos
-  m1_command_scaled = thro_des; // - pitch_PID + roll_PID + yaw_PID; //Front Left
-  m2_command_scaled = thro_des - pitch_PID + roll_PID;
-  m3_command_scaled = thro_des - pitch_PID - roll_PID;
+  m1_command_scaled = thro_des - pitch_PID; // - pitch_PID + roll_PID + yaw_PID; //Front Left
+  m2_command_scaled = aux_thro_des + pitch_PID + roll_PID;
+  m3_command_scaled = aux_thro_des + pitch_PID - roll_PID;
   m4_command_scaled = 0;
-  m5_command_scaled = thro_des;
+  m5_command_scaled = 0;
   m6_command_scaled = 0;
 
   //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
@@ -489,10 +520,10 @@ void controlMixer() {
   // s1_command_scaled = 0.5 + (-pitch_PID -roll_PID +collective_input);
   // s2_command_scaled = 0.5 + (-pitch_PID +roll_PID -collective_input);
   // s3_command_scaled = 0.5 + (+roll_PID +collective_input);
-  s1_command_scaled = 0.15 - yaw_PID;
-  s2_command_scaled = 0.85 - yaw_PID;
-  s1_command_scaled = constrain(s1_command_scaled, 0.0, 0.5);
-  s2_command_scaled = constrain(s2_command_scaled, 0.5, 1.0);
+  s1_command_scaled = 0.5 - yaw_PID;
+  s2_command_scaled = 0.5 - yaw_PID;
+  s1_command_scaled = constrain(s1_command_scaled, 0.0, 1.0);
+  s2_command_scaled = constrain(s2_command_scaled, 0.0, 1.0);
   s3_command_scaled = thro_des;
   s4_command_scaled = 0;
   s5_command_scaled = 0;
@@ -630,12 +661,12 @@ void calculate_IMU_error() {
    * measurement. 
    */
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ,MgX,MgY,MgZ;
-  AccErrorX = 0.02;
-  AccErrorY = 0.02;
-  AccErrorZ = 0.01;
-  GyroErrorX = -1.74;
-  GyroErrorY= 0.81;
-  GyroErrorZ = -0.21;
+  AccErrorX = 0.00;
+  AccErrorY = 0.00;
+  AccErrorZ = 0.00;
+  GyroErrorX = 0.00;
+  GyroErrorY= 0.00;
+  GyroErrorZ = 0.00;
   
   //Read IMU values 12000 times
   int c = 0;
